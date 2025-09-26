@@ -7,7 +7,7 @@ export function requireAuth(req, res, next) {
 	if (!token) return res.status(401).json({ message: "Unauthorized" });
 	try {
 		const payload = jwt.verify(token, process.env.JWT_SECRET || "dev_secret");
-		req.user = payload; // { id, role }
+		req.user = payload;
 		return next();
 	} catch (error) {
 		return res.status(401).json({ message: "Invalid token" });

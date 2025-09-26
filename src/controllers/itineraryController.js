@@ -33,7 +33,7 @@ export async function createItinerary(req, res) {
 
 export async function listCards(req, res) {
 	try {
-		const { type } = req.query; // domestic or international
+		const { type } = req.query; 
 		const filter = {};
 		if (type) filter.type = type;
 		const docs = await Itinerary.find(filter).select(PUBLIC_CARD_FIELDS.join(" ")).sort({ createdAt: -1 }).limit(100);
@@ -45,7 +45,7 @@ export async function listCards(req, res) {
 
 export async function getByCountry(req, res) {
 	try {
-		const { country } = req.params; // e.g., dubai, vietnam
+		const { country } = req.params; 
 		const normalized = country.replace(/\s+/g, "-").toLowerCase();
 		const docs = await Itinerary.find({ country: new RegExp(`^${normalized}$`, "i"), type: ITINERARY_TYPES.INTERNATIONAL, isPublished: true })
 			.sort({ createdAt: -1 });
