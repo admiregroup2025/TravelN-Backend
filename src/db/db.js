@@ -10,7 +10,7 @@ export async function connectToDatabase() {
 		console.log("✅ Connected to MongoDB");
 		return mongoose.connection;
 	} catch (error) {
-		console.error("❌ MongoDB connection error:", error.message);
+		console.error(" MongoDB connection error:", error.message);
 		throw error;
 	}
 }

@@ -1,4 +1,3 @@
-// Central constants
 
 export const ROLES = {
 	USER: "user",
