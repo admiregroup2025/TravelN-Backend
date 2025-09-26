@@ -19,9 +19,12 @@ throw new AppError("User already exists", 400);
   });
 
   await user.save();
+  const userData = user.toObject();
+  delete userData.password;
+
   return {
     message: "User registered successfully",
-    user,
+    user:userData,
   };
 };
 
