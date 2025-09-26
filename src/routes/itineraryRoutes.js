@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { createItinerary, listCards, getByCountry, getBySlug } from "../controllers/itineraryController.js";
 import { requireAuth, requireRoles } from "../middlewares/auth.js";
-import { ROLES } from "../constant.js";
+import { ROLES } from "../utils/constant.js";
 
 const router = Router();
 

@@ -1,5 +1,5 @@
 import { Itinerary } from "../models/Itinerary.js";
-import { ITINERARY_TYPES, PUBLIC_CARD_FIELDS, ROLES } from "../constant.js";
+import { ITINERARY_TYPES, PUBLIC_CARD_FIELDS, ROLES } from "../utils/constant.js";
 
 export async function createItinerary(req, res) {
 	try {

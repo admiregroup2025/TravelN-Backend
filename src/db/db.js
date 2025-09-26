@@ -1,8 +1,7 @@
 import mongoose from "mongoose";
 
-export async function connectToDatabase() {
+export default async function connectToDatabase() {
 	const mongoUri = process.env.MONGO_URI ;
-	console.log(mongoUri)
 	try {
 		await mongoose.connect(mongoUri, {
 			serverSelectionTimeoutMS: 8000,

@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import { ROLES } from "../constant.js";
+import { ROLES } from "../utils/constant.js";
 
 export function requireAuth(req, res, next) {
 	const header = req.headers.authorization || "";
@@ -13,6 +13,7 @@ export function requireAuth(req, res, next) {
 		return res.status(401).json({ message: "Invalid token" });
 	}
 }
+
 
 export function requireRoles(...allowed) {
 	return function (req, res, next) {

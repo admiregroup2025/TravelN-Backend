@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { ITINERARY_TYPES } from "../constant.js";
+import { ITINERARY_TYPES } from "../utils/constant.js";
 
 const dayPlanSchema = new mongoose.Schema(
 	{
