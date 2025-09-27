@@ -1,47 +1,3 @@
-// import jwt from "jsonwebtoken";
-// import { User } from "../models/User.js";
-// import { ROLES } from "../utils/constant.js";
-
-// function signToken(user) {
-// 	const payload = { id: user._id.toString(), role: user.role, email: user.email };
-// 	const secret = process.env.JWT_SECRET || "dev_secret";
-// 	const expiresIn = "7d";
-// 	return jwt.sign(payload, secret, { expiresIn });
-// }
-
-// export async function login(req, res) {
-// 	const { email, password } = req.body;
-// 	if (!email || !password) return res.status(400).json({ message: "Email and password required" });
-// 	const user = await User.findOne({ email });
-// 	if (!user) return res.status(401).json({ message: "Invalid credentials" });
-// 	const ok = await user.verifyPassword(password);
-// 	if (!ok) return res.status(401).json({ message: "Invalid credentials" });
-// 	return res.json({ token: signToken(user), role: user.role, name: user.name });
-// }
-
-// export async function seedSuperAdmin(req, res) {
-//   const seedKey = req.headers["x-seed-key"];
-//   if ((process.env.SEED_SUPERADMIN_KEY || "") !== seedKey) {
-//     return res.status(403).json({ message: "Forbidden" });
-//   }
-//   const email = process.env.SUPERADMIN_EMAIL || "super@travelnworldz.com";
-//   const password = process.env.SUPERADMIN_PASSWORD || "superadmin123";
-//   let user = await User.findOne({email});
-//   if (!user) {
-//     user = new User({
-//       name: "Super Admin",
-//       email,
-//       passwordHash: await User.hashPassword(password),
-//       role: ROLES.SUPERADMIN,
-//     });
-//     await user.save();
-//   }
-//   return res.json({
-//     message: "Super admin ready",
-//     email,
-//     token: signToken(user),
-//   });
-// }
 
 
 
@@ -50,13 +6,16 @@ import { User } from "../models/User.js";
 import { ROLES } from "../utils/constant.js";
 import * as authService from "../services/authService.js";
 import { AppError } from "../utils/errorHandler.js";
+import { generateAccessToken, generateRefreshToken } from "../utils/jwt.js";
 
 export const register = async (req, res, next) => {
   try {
-    const { name, email, password, phone_no } = req.body;
-    console.log(email,"nawlesh")
+    const {first_name,last_name, email, password, phone_no } = req.body;
+    console.log(first_name)
+   
     const result = await authService.registerUser({
-      name,
+      first_name,
+      last_name,
       email,
       password,
       phone_no,
@@ -118,22 +77,7 @@ export const refreshTokenHandler = async (req, res) => {
   }
 };
 
-// function signToken(user) {
-// 	const payload = { id: user._id.toString(), role: user.role, email: user.email };
-// 	const secret = process.env.JWT_SECRET || "dev_secret";
-// 	const expiresIn = "7d";
-// 	return jwt.sign(payload, secret, { expiresIn });
-// }
 
-// export async function login(req, res) {
-// 	const { email, password } = req.body;
-// 	if (!email || !password) return res.status(400).json({ message: "Email and password required" });
-// 	const user = await User.findOne({ email });
-// 	if (!user) return res.status(401).json({ message: "Invalid credentials" });
-// 	const ok = await user.verifyPassword(password);
-// 	if (!ok) return res.status(401).json({ message: "Invalid credentials" });
-// 	return res.json({ token: signToken(user), role: user.role, name: user.name });
-// }
 
 export async function seedSuperAdmin(req, res) {
 	// Temporary, protect with a simple shared secret via env
@@ -148,11 +92,76 @@ export async function seedSuperAdmin(req, res) {
 		user = new User({
 			name: "Super Admin",
 			email,
-			passwordHash: await User.hashPassword(password),
+			password: await User.hashPassword(password),
 			role: ROLES.SUPERADMIN,
 		});
 		await user.save();
 	}
-	return res.json({ message: "Super admin ready", email, token: signToken(user) });
+	
+	// Generate tokens for super admin
+	const payload = {
+		email: user.email,
+		role: user.role,
+	};
+	const accessToken = generateAccessToken(payload);
+	const refreshToken = generateRefreshToken(payload);
+	
+	return res.json({ 
+		message: "Super admin ready", 
+		email, 
+		accessToken,
+		refreshToken 
+	});
 }
 
+
+
+
+export const logout = async (req, res) => {
+  try {
+    const refreshToken = req.cookies?.refreshToken;
+    if (refreshToken) {
+      await RefreshToken.deleteOne({ token: refreshToken });
+    }
+
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict"
+    });
+
+    return res.status(200).json({ success: true, message: "Logged out successfully" });
+  } catch (err) {
+    return res.status(500).json({ message: "Logout failed" });
+  }
+};
+
+export const getProfile = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    console.log(userId);
+    const user = await User.findById(userId).select("-password");
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    res.status(200).json({ success: true, user });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const updateProfile = async (req, res, next) => {
+  try {
+    const userId = req.user.id; // from auth middleware
+    const updatedUser = await authService.updateUserProfile(userId, req.body, req.file);
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+      user: updatedUser,
+    });
+  } catch (err) {
+    next(new AppError(err.message || "Profile update failed", 400));
+  }
+};

@@ -3,7 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import authRoutes from './routes/authRoutes.js';
-import itineraryRoutes from './routes/itineraryRoutes.js';
+import itineraryRoutes from '../src/routes/itineraryRoutes.js';
 // import Razorpay from "razorpay";
 import { errorHandler } from './utils/errorHandler.js';
 
@@ -11,13 +11,11 @@ const app = express();
 
 app.use(
   cors({
-    origin:
-      process.env.NODE_ENV === "production"
-        ? process.env.FRONTEND_URL
-        : "*",
-    credentials: true,
+    origin: "http://localhost:5173", // Your frontend URL
+    credentials: true, // Allow cookies/authorization headers
   })
 );
+
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

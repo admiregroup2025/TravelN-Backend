@@ -11,10 +11,11 @@
 
 
 import { Router } from "express";
-import { login, register, refreshTokenHandler,seedSuperAdmin } from "../controllers/authController.js";
+import { login, register, refreshTokenHandler,seedSuperAdmin ,logout, getProfile, updateProfile} from "../controllers/authController.js";
 import { validateRegister } from "../middlewares/validators/authValidator.js";
 import { validateRequest } from "../middlewares/validators/validationErrorHandler.js";
 import { check } from "express-validator";
+import { requireAuth } from "../middlewares/auth.js";
 
 const router = Router();
 
@@ -31,6 +32,20 @@ router.post(
 );
 
 router.post("/register", validateRegister, validateRequest,register);
+
+
+router.post("/logout", requireAuth,logout);
+
+router.post("/seed-superadmin", seedSuperAdmin);
+
+
+router.get("/profile", requireAuth, getProfile);
+
+router.put(
+  "/profile",
+  requireAuth,
+  updateProfile
+);
 
 router.post("/refresh-token", refreshTokenHandler);
 
