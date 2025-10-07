@@ -1,85 +1,139 @@
-import { User } from "../models/User.js";
+import Agent from "../models/agent.js";
+import User from "../models/User.js";
 import { AppError } from "../utils/errorHandler.js";
 import { generateAccessToken, generateRefreshToken } from "../utils/jwt.js";
 import jwt from "jsonwebtoken";
+import { ROLES } from "../utils/constant.js";
 
-export const registerUser = async ({ name, email, password, phone_no }) => {
-  const existingUser = await User.findOne({ email });
+/**
+ * Register agent — used for both self-registration and admin-created agents
+ * @param {Object} agentData - { firstName, lastName, email, password, phone, role }
+ * @param {Object} currentUser - req.user (optional, if logged in)
+ */
+export const registerAgent = async (agentData, currentUser = null) => {
+  const { firstName, lastName, email, password, phone, role } = agentData;
+  const normalizedEmail = typeof email === "string" ? email.toLowerCase().trim() : email;
+
+  // Check if a user already exists for this email
+  const existingUser = await User.findOne({ email: normalizedEmail });
   if (existingUser) {
-throw new AppError("User already exists", 400);
+    throw new AppError("User with this email already exists", 400);
   }
 
-  const hashedPassword = await User.hashPassword(password);
+  // Determine role based on hierarchy
+  let finalRole = ROLES.AGENT; // default for public registration
 
+  if (currentUser) {
+    const creatorRole = currentUser.role;
+
+    if (creatorRole === ROLES.SUPERADMIN) {
+      // SuperAdmin can create Admin or Agent
+      if (![ROLES.ADMIN, ROLES.AGENT].includes(role)) {
+        throw new AppError(
+          "SuperAdmin can only create Admin or Agent accounts",
+          403
+        );
+      }
+      finalRole = role;
+    } else if (creatorRole === ROLES.ADMIN) {
+      // Admin can only create Agents
+      if (role && role !== ROLES.AGENT) {
+        throw new AppError("Admin can only create Agent accounts", 403);
+      }
+      finalRole = ROLES.AGENT;
+    } else {
+      throw new AppError("You are not allowed to create agents", 403);
+    }
+  }
+
+  // Create user credentials
   const user = new User({
-    name,
-    email,
-    phone_no,
-    password : hashedPassword,
+    email: normalizedEmail,
+    passwordHash: password,
+    role: finalRole,
+    firstName,
+    lastName,
   });
-
   await user.save();
-  const userData = user.toObject();
-  delete userData.password;
+
+  // Create agent profile record for all roles so profile endpoints work consistently
+  const agentProfile = new Agent({
+    firstName,
+    lastName,
+    email: normalizedEmail,
+    phone,
+    role: finalRole,
+  });
+  await agentProfile.save();
+
+  const profileToReturn = agentProfile.toObject();
+  delete profileToReturn.password;
 
   return {
     message: "User registered successfully",
-    user:userData,
+    agent: profileToReturn,
   };
 };
 
-export const loginUser = async (email, password) => {
-  // Find user and include password
-  const user = await User.findOne({ email }).select("+password");
+/**
+ * Agent login
+ */
+export const loginAgent = async (email, password) => {
+  const normalizedEmail = typeof email === "string" ? email.toLowerCase().trim() : email;
+  const user = await User.findOne({ email: normalizedEmail }).select("+passwordHash");
   if (!user) throw new AppError("Invalid email or password", 401);
 
-  // Verify password
   const isMatch = await user.comparePassword(password);
   if (!isMatch) throw new AppError("Invalid email or password", 401);
 
-    // Convert to plain object and remove password
-  const userData = user.toObject();
-  delete userData.password;
+  if (!user.isActive) {
+    throw new AppError("Your account is inactive. Contact admin.", 403);
+  }
 
+  // get profile if exists
+  const agent = await Agent.findOne({ email: normalizedEmail }).select("-password");
+  const agentData = agent
+    ? agent.toObject()
+    : { firstName: user.firstName, lastName: user.lastName, email: user.email, role: user.role, isActive: user.isActive };
 
-  // Payload for tokens
   const payload = {
+    id: user._id.toString(),
     email: user.email,
     role: user.role,
   };
 
-  // Generate tokens
   const accessToken = generateAccessToken(payload);
   const refreshToken = generateRefreshToken(payload);
 
-  // Return tokens and user data
   return {
     accessToken,
     refreshToken,
-    user : userData
+    agent: agentData,
   };
 };
 
-export const refreshTokens = async (oldRefreshToken) => {
+/**
+ * Refresh tokens
+ */
+export const refreshAgentTokens = async (oldRefreshToken) => {
   if (!oldRefreshToken) throw new AppError("Refresh token missing", 401);
+
   let decoded;
   try {
-    console.log(process.env.REFRESH_TOKEN_SECRET);
     decoded = jwt.verify(oldRefreshToken, process.env.REFRESH_TOKEN_SECRET);
   } catch (error) {
-    console.log(error);
     throw new AppError("Invalid or expired refresh token", 401);
   }
 
-  // Create new tokens
-  const payload = {
-    id: decoded._id,
-    email: decoded.email,
-    role: decoded.role,
-  };
+  const user = await User.findById(decoded.id).select("email role isActive");
+  if (!user || user.isActive === false) {
+    throw new AppError("User no longer valid", 401);
+  }
+
+  const payload = { id: user._id.toString(), email: user.email, role: user.role };
 
   const newAccessToken = generateAccessToken(payload);
   const newRefreshToken = generateRefreshToken(payload);
 
   return { newAccessToken, newRefreshToken };
-}
+};

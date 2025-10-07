@@ -1,158 +1,212 @@
-// import jwt from "jsonwebtoken";
-// import { User } from "../models/User.js";
-// import { ROLES } from "../utils/constant.js";
-
-// function signToken(user) {
-// 	const payload = { id: user._id.toString(), role: user.role, email: user.email };
-// 	const secret = process.env.JWT_SECRET || "dev_secret";
-// 	const expiresIn = "7d";
-// 	return jwt.sign(payload, secret, { expiresIn });
-// }
-
-// export async function login(req, res) {
-// 	const { email, password } = req.body;
-// 	if (!email || !password) return res.status(400).json({ message: "Email and password required" });
-// 	const user = await User.findOne({ email });
-// 	if (!user) return res.status(401).json({ message: "Invalid credentials" });
-// 	const ok = await user.verifyPassword(password);
-// 	if (!ok) return res.status(401).json({ message: "Invalid credentials" });
-// 	return res.json({ token: signToken(user), role: user.role, name: user.name });
-// }
-
-// export async function seedSuperAdmin(req, res) {
-//   const seedKey = req.headers["x-seed-key"];
-//   if ((process.env.SEED_SUPERADMIN_KEY || "") !== seedKey) {
-//     return res.status(403).json({ message: "Forbidden" });
-//   }
-//   const email = process.env.SUPERADMIN_EMAIL || "super@travelnworldz.com";
-//   const password = process.env.SUPERADMIN_PASSWORD || "superadmin123";
-//   let user = await User.findOne({email});
-//   if (!user) {
-//     user = new User({
-//       name: "Super Admin",
-//       email,
-//       passwordHash: await User.hashPassword(password),
-//       role: ROLES.SUPERADMIN,
-//     });
-//     await user.save();
-//   }
-//   return res.json({
-//     message: "Super admin ready",
-//     email,
-//     token: signToken(user),
-//   });
-// }
-
-
-
-import jwt from "jsonwebtoken";
-import { User } from "../models/User.js";
 import { ROLES } from "../utils/constant.js";
 import * as authService from "../services/authService.js";
+import Agent from "../models/agent.js";
+import User from "../models/User.js";
 import { AppError } from "../utils/errorHandler.js";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
 
+/**
+ * ======================
+ * REGISTER CONTROLLER
+ * ======================
+ * - Only SUPER_ADMIN can create an ADMIN
+ * - ADMIN or SUPER_ADMIN can create an AGENT
+ */
 export const register = async (req, res, next) => {
   try {
-    const { name, email, password, phone_no } = req.body;
-    console.log(email,"nawlesh")
-    const result = await authService.registerUser({
-      name,
+    const { firstName, lastName, email, password, role } = req.body;
+
+    // Prevent anyone from manually assigning SUPER_ADMIN
+    if (role === ROLES.SUPERADMIN) {
+      throw new AppError("Cannot assign SUPERADMIN role manually", 403);
+    }
+
+    // Determine assigned role
+    const assignedRole = Object.values(ROLES).includes(role)
+      ? role
+      : ROLES.AGENT; // Default to agent-level if role invalid or missing
+
+    const result = await authService.registerAgent({
+      firstName,
+      lastName,
       email,
       password,
-      phone_no,
+      role: assignedRole,
+    }, req.user); // pass logged-in user for role check
+
+    return res.status(201).json({
+      success: true,
+      message: result.message,
+      data: result.agent,
     });
-    return res
-      .status(201)
-      .json({ success: true, message: result.message, data: result.user });
   } catch (err) {
     next(new AppError(err.message || "Registration failed", 400));
   }
 };
 
+/**
+ * ======================
+ * LOGIN CONTROLLER
+ * ======================
+ */
 export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
-    const result = await authService.loginUser(email, password);
+    const result = await authService.loginAgent(email, password);
+
+    if (!result.agent.isActive) {
+      throw new AppError("Your account is deactivated. Contact admin.", 403);
+    }
+
+    // Set refresh token cookie
     res.cookie("refreshToken", result.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     return res.status(200).json({
       success: true,
       accessToken: result.accessToken,
-      user: result.user,
+      agent: result.agent,
     });
   } catch (error) {
     next(error);
   }
 };
 
-export const refreshTokenHandler = async (req, res) => {
+/**
+ * ======================
+ * REFRESH TOKEN CONTROLLER
+ * ======================
+ */
+export const refreshTokenHandler = async (req, res, next) => {
   try {
     const refreshToken = req.cookies?.refreshToken;
     if (!refreshToken) {
-      return res.status(401).json({ message: "Refresh token missing" });
+      throw new AppError("Refresh token missing", 401);
     }
 
-    const { newAccessToken, newRefreshToken } = await authService.refreshTokens(
-      refreshToken
-    );
+    const { newAccessToken, newRefreshToken } = await authService.refreshAgentTokens(refreshToken);
 
-    // Set new refresh token in HTTP-only cookie
+    // Set updated refresh token
     res.cookie("refreshToken", newRefreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    // Return new access token
-    return res.json({ accessToken: newAccessToken });
+    return res.status(200).json({
+      success: true,
+      accessToken: newAccessToken,
+    });
   } catch (error) {
-    return res
-      .status(401)
-      .json({ message: error.message || "Invalid refresh token" });
+    next(new AppError(error.message || "Invalid refresh token", 401));
   }
 };
 
-// function signToken(user) {
-// 	const payload = { id: user._id.toString(), role: user.role, email: user.email };
-// 	const secret = process.env.JWT_SECRET || "dev_secret";
-// 	const expiresIn = "7d";
-// 	return jwt.sign(payload, secret, { expiresIn });
-// }
+/**
+ * ======================
+ * SEED SUPER ADMIN
+ * ======================
+ * - One-time setup
+ */
+export const seedSuperAdmin = async (req, res, next) => {
+  try {
+    const existingAgentSA = await Agent.findOne({ role: ROLES.SUPERADMIN});
 
-// export async function login(req, res) {
-// 	const { email, password } = req.body;
-// 	if (!email || !password) return res.status(400).json({ message: "Email and password required" });
-// 	const user = await User.findOne({ email });
-// 	if (!user) return res.status(401).json({ message: "Invalid credentials" });
-// 	const ok = await user.verifyPassword(password);
-// 	if (!ok) return res.status(401).json({ message: "Invalid credentials" });
-// 	return res.json({ token: signToken(user), role: user.role, name: user.name });
-// }
+    const email = (req.body.email || process.env.SUPERADMIN_EMAIL || "").toLowerCase().trim();
+    const password = req.body.password || process.env.SUPERADMIN_PASSWORD;
+    const firstName = req.body.firstName || "Super";
+    const lastName = req.body.lastName || "Admin";
 
-export async function seedSuperAdmin(req, res) {
-	// Temporary, protect with a simple shared secret via env
-	const seedKey = req.headers["x-seed-key"];
-	if ((process.env.SEED_SUPERADMIN_KEY || "") !== seedKey) {
-		return res.status(403).json({ message: "Forbidden" });
-	}
-	const email = process.env.SUPERADMIN_EMAIL || "super@travelnworldz.com";
-	const password = process.env.SUPERADMIN_PASSWORD || "superadmin123";
-	let user = await User.findOne({ email });
-	if (!user) {
-		user = new User({
-			name: "Super Admin",
-			email,
-			passwordHash: await User.hashPassword(password),
-			role: ROLES.SUPERADMIN,
-		});
-		await user.save();
-	}
-	return res.json({ message: "Super admin ready", email, token: signToken(user) });
-}
+    if (!email || !password) {
+      throw new AppError("Super Admin email and password are required", 400);
+    }
+
+    // Check if a SUPERADMIN user already exists
+    const existingUserSA = await User.findOne({ email, role: ROLES.SUPERADMIN });
+
+    let user = existingUserSA;
+    let agent = existingAgentSA;
+
+    // Case 1: Both exist → return info
+    if (existingUserSA && existingAgentSA) {
+      return res.status(200).json({
+        message: "Super Admin already exists",
+        email: existingUserSA.email,
+      });
+    }
+
+    // Case 2: Agent exists, User missing → create User only
+    if (!existingUserSA && existingAgentSA) {
+      user = new User({
+        email: existingAgentSA.email,
+        passwordHash: password,
+        role: ROLES.SUPERADMIN,
+        firstName: existingAgentSA.firstName || firstName,
+        lastName: existingAgentSA.lastName || lastName,
+      });
+      await user.save();
+
+      const token = jwt.sign(
+        { id: user._id, email: user.email, role: user.role },
+        process.env.ACCESS_TOKEN_SECRET,
+        { expiresIn: "7d" }
+      );
+
+      return res.status(201).json({
+        message: "Super Admin credentials created for existing profile",
+        email: user.email,
+        token,
+      });
+    }
+
+    // Case 3: User exists, Agent missing → create Agent profile only
+    if (existingUserSA && !existingAgentSA) {
+      agent = new Agent({
+        firstName: existingUserSA.firstName || firstName,
+        lastName: existingUserSA.lastName || lastName,
+        email: existingUserSA.email,
+        role: ROLES.SUPERADMIN,
+      });
+      await agent.save();
+
+      return res.status(200).json({
+        message: "Super Admin profile created for existing credentials",
+        email: existingUserSA.email,
+      });
+    }
+
+    // Case 4: Neither exists → create both
+    user = new User({
+      email,
+      passwordHash: password,
+      role: ROLES.SUPERADMIN,
+      firstName,
+      lastName,
+    });
+    await user.save();
+
+    agent = new Agent({ firstName, lastName, email, role: ROLES.SUPERADMIN });
+    await agent.save();
+
+    const token = jwt.sign(
+      { id: user._id, email: user.email, role: user.role },
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    return res.status(201).json({
+      message: "Super Admin created successfully",
+      email: user.email,
+      token,
+    });
+  } catch (error) {
+    next(new AppError(error.message || "Super Admin seeding failed", 400));
+  }
+};
 

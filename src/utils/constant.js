@@ -1,25 +1,23 @@
-
 export const ROLES = {
-	USER: "user",
-	ADMIN: "admin",
-	SUPERADMIN: "superadmin",
+  SUPERADMIN: "SUPERADMIN",
+  ADMIN: "ADMIN",
+  AGENT: "AGENT", // same as user
 };
 
+
 export const ITINERARY_TYPES = {
-	DOMESTIC: "domestic",
-	INTERNATIONAL: "international",
+  DOMESTIC: "domestic",
+  INTERNATIONAL: "international",
 };
 
 export const PUBLIC_CARD_FIELDS = [
-	"_id",
-	"title",
-	"slug",
-	"country",
-	"type",
-	"coverImageUrl",
-	"shortDescription",
-	"priceFrom",
-	"durationDays",
+  "_id",
+  "title",
+  "slug",
+  "country",
+  "type",
+  "coverImageUrl",
+  "shortDescription",
+  "priceFrom",
+  "durationDays",
 ];
-
-
