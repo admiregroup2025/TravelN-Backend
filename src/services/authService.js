@@ -125,6 +125,9 @@ export const refreshAgentTokens = async (oldRefreshToken) => {
     throw new AppError("Invalid or expired refresh token", 401);
   }
 
+  // Rotate: delete old token
+  await RefreshToken.deleteOne({ token: oldRefreshToken });
+
   const user = await User.findById(decoded.id).select("email role isActive");
   if (!user || user.isActive === false) {
     throw new AppError("User no longer valid", 401);
@@ -134,6 +137,12 @@ export const refreshAgentTokens = async (oldRefreshToken) => {
 
   const newAccessToken = generateAccessToken(payload);
   const newRefreshToken = generateRefreshToken(payload);
+
+  await RefreshToken.create({
+    token: newRefreshToken,
+    userId: decoded.id,
+    expiresAt: new Date(Date.now() + 7*24*60*60*1000)
+  });
 
   return { newAccessToken, newRefreshToken };
 };

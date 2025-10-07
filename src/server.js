@@ -12,13 +12,11 @@ const app = express();
 
 app.use(
   cors({
-    origin:
-      process.env.NODE_ENV === "production"
-        ? process.env.FRONTEND_URL
-        : "*",
-    credentials: true,
+    origin: "http://localhost:5173", // Your frontend URL
+    credentials: true, // Allow cookies/authorization headers
   })
 );
+
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

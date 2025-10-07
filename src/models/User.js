@@ -2,6 +2,22 @@ import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import { ROLES } from "../utils/constant.js";
 
+
+
+const addressSchema = new mongoose.Schema(
+  {
+    house: { type: String, default: "" },
+    street: { type: String, default: "" },
+    area: { type: String, default: "" },
+    city: { type: String, default: "" },
+    state: { type: String, default: "" },
+    zip: { type: String, default: "" },
+    country: { type: String, default: "" },
+  },
+  { _id: false }
+)
+
+
 const { Schema } = mongoose;
 const SALT_ROUNDS = parseInt(process.env.SALT_ROUNDS || "10", 10);
 
