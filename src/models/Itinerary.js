@@ -1,6 +1,7 @@
 // models/Itinerary.js
 import mongoose from "mongoose";
 import slugify from "slugify";
+import { ITINERARY_TYPES } from "../utils/constant.js";
 
 const dayPlanSchema = new mongoose.Schema(
   {

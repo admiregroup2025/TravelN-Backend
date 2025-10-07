@@ -1,5 +1,6 @@
 
-import Agent from "../models/Agent.js";
+import Agent from "../models/agent.js";
+import User from "../models/User.js";
 import { ROLES } from "../utils/constant.js";
 import { AppError } from "../utils/errorHandler.js";
 import bcrypt from "bcrypt";
@@ -34,14 +35,40 @@ export const getAgentById = async (id) => {
 };
 
 export const createAgent = async (data, loggedInUser) => {
-  const existing = await Agent.findOne({ email: data.email });
-  if (existing) throw new AppError("Email already exists", 400);
+  const normalizedEmail = typeof data.email === "string" ? data.email.toLowerCase().trim() : data.email;
+  const existingUser = await User.findOne({ email: normalizedEmail });
+  if (existingUser) throw new AppError("Email already exists", 400);
 
-  if (data.role === ROLES.ADMIN && loggedInUser.role !== ROLES.SUPERADMIN) {
+  const requestedRole = data.role || ROLES.AGENT;
+  if (requestedRole === ROLES.ADMIN && loggedInUser.role !== ROLES.SUPERADMIN) {
     throw new AppError("Only SUPERADMIN can create ADMIN", 403);
   }
 
-  const agent = new Agent({ ...data, role: data.role || ROLES.AGENT });
+  // Create credentials user
+  const user = new User({
+    email: normalizedEmail,
+    passwordHash: data.password,
+    role: requestedRole,
+    firstName: data.firstName,
+    lastName: data.lastName,
+  });
+  await user.save();
+
+  // Create agent profile
+  const agent = new Agent({
+    firstName: data.firstName,
+    lastName: data.lastName,
+    email: normalizedEmail,
+    phone: data.phone,
+    role: requestedRole,
+    company: data.company,
+    registeredEmail: data.registeredEmail,
+    secondaryEmail: data.secondaryEmail,
+    companyAddress: data.companyAddress,
+    branchAddress: data.branchAddress,
+    photo: data.photo,
+    isActive: data.isActive !== undefined ? data.isActive : true,
+  });
   await agent.save();
   return { agent, message: "Agent created successfully" };
 };
@@ -54,6 +81,13 @@ export const updateAgent = async (id, updateData, loggedInUser) => {
   }
   Object.assign(agent, updateData);
   await agent.save();
+  // keep User in sync for key fields
+  const userUpdate = {};
+  if (typeof updateData.isActive === "boolean") userUpdate.isActive = updateData.isActive;
+  if (updateData.role && Object.values(ROLES).includes(updateData.role)) userUpdate.role = updateData.role;
+  if (Object.keys(userUpdate).length) {
+    await User.updateOne({ email: agent.email }, { $set: userUpdate });
+  }
   return { agent, message: "Agent updated successfully" };
 };
 
@@ -63,7 +97,8 @@ export const deleteAgent = async (id, loggedInUser) => {
   if (agent.role === ROLES.ADMIN && loggedInUser.role !== ROLES.SUPERADMIN) {
     throw new AppError("Cannot delete ADMIN", 403);
   }
-  await agent.remove();
+  await User.deleteOne({ email: agent.email });
+  await Agent.deleteOne({ _id: agent._id });
   return { message: "Agent deleted successfully" };
 };
 
@@ -75,23 +110,30 @@ export const toggleAgentStatus = async (id, isActive, loggedInUser) => {
   }
   agent.isActive = isActive;
   await agent.save();
+  await User.updateOne({ email: agent.email }, { $set: { isActive } });
   return { agent, message: `Agent is now ${isActive ? "active" : "inactive"}` };
 };
 
 export const changeAgentPassword = async (id, newPassword, loggedInUser) => {
-  const agent = await Agent.findById(id).select("+password");
+  const agent = await Agent.findById(id);
   if (!agent) throw new AppError("Agent not found", 404);
-  agent.password = await bcrypt.hash(newPassword, SALT_ROUNDS);
-  await agent.save();
+  const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+  await User.updateOne({ email: agent.email }, { $set: { passwordHash } });
   return { message: "Password updated successfully" };
 };
 
-export const changeOwnPassword = async (id, currentPassword, newPassword) => {
-  const agent = await Agent.findById(id).select("+password");
-  if (!agent) throw new AppError("Agent not found", 404);
-  const match = await agent.comparePassword(currentPassword);
+export const changeOwnPassword = async (userId, currentPassword, newPassword) => {
+  const user = await User.findById(userId).select("+passwordHash");
+  if (!user) throw new AppError("User not found", 404);
+  const match = await bcrypt.compare(currentPassword, user.passwordHash || "");
   if (!match) throw new AppError("Current password is incorrect", 400);
-  agent.password = await bcrypt.hash(newPassword, SALT_ROUNDS);
-  await agent.save();
+  user.passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+  await user.save();
   return { message: "Password updated successfully" };
+};
+
+export const getAgentByEmail = async (email) => {
+  const agent = await Agent.findOne({ email });
+  if (!agent) throw new AppError("Agent not found", 404);
+  return agent;
 };
