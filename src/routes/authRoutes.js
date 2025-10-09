@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { login, register, refreshTokenHandler, seedSuperAdmin,} from "../controllers/authController.js";
+// import { login, register, refreshTokenHandler, seedSuperAdmin,} from "../controllers/authController.js";
+import {login , register} from "../controllers/authController.js"
 import { validateRegister } from "../middlewares/validators/authValidator.js";
 import { validateRequest } from "../middlewares/validators/validationErrorHandler.js";
 import { check } from "express-validator";
@@ -7,28 +8,29 @@ import { requireAuth, requireRoles } from "../middlewares/auth.js";
 import { ROLES } from "../utils/constant.js";
 
 const router = Router();
+router.post("/login", login)
+router.post("/register",register)
 
-router.post(
-  "/login",
-  [
-    check("email", "Valid email is required").isEmail(),
-    check("password", "Password is required").notEmpty(),
-    validateRequest,
-  ],
-  login
-);
-
-router.post("/register",requireAuth, requireRoles(ROLES.ADMIN, ROLES.SUPERADMIN),
-  validateRegister,
-  validateRequest,
-  register
-);
+// router.post(
+//   "/login",
+//   [
+//     check("email", "Valid email is required").isEmail(),
+//     check("password", "Password is required").notEmpty(),
+//     validateRequest,
+//   ],
+//   login
+// );
+// router.post("/register",requireAuth, requireRoles(ROLES.ADMIN, ROLES.SUPERADMIN),
+//   validateRegister,
+//   validateRequest,
+//   register
+// );
 
 // Refresh token
-router.post("/refresh-token", refreshTokenHandler);
+// router.post("/refresh-token", refreshTokenHandler);
 
 // Seed super admin (one-time setup - only works if no superadmin exists)
-router.post("/seed-superadmin", seedSuperAdmin);
+// router.post("/seed-superadmin", seedSuperAdmin);
 
 
 // Get logged-in user info

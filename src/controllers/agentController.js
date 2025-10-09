@@ -1,7 +1,7 @@
 import * as agentService from "../services/agentService.js";
 import { AppError } from "../utils/errorHandler.js";
 import { ROLES } from "../utils/constant.js";
-import Agent from "../models/Agent.js";
+import Agent from "../models/agent.js";
 
 /**
  * ======================
@@ -9,22 +9,35 @@ import Agent from "../models/Agent.js";
  * ======================
  * Supports pagination, search, and role filter.
  */
-export const getAllAgents = async (req, res, next) => {
+// export const getAllAgents = async (req, res, next) => {
+//   try {
+//     const page = parseInt(req.query.page) || 1;
+//     const limit = parseInt(req.query.limit) || 10;
+//     const role = req.query.role; // optional (admin / agent)
+//     const search = req.query.search || "";
+
+//     const result = await agentService.getAllAgents(page, limit, role, search);
+
+//     res.status(200).json({
+//       success: true,
+//       data: result.agents,
+//       pagination: result.pagination,
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
+
+export const getAllAgents = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const role = req.query.role; // optional (admin / agent)
-    const search = req.query.search || "";
-
-    const result = await agentService.getAllAgents(page, limit, role, search);
-
-    res.status(200).json({
-      success: true,
-      data: result.agents,
-      pagination: result.pagination,
-    });
+    const agent = await Agent.find({});
+    if (!agent.length) {
+      return res.status(400).json({ message: "No Student found" });
+    }
+    res.json(agent);
   } catch (error) {
-    next(error);
+    res.status(500).json({ message: "Server Error" });
   }
 };
 

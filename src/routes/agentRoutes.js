@@ -66,13 +66,13 @@ const validateMyPasswordChange = [
 // ==================== AGENT ROUTES ====================
 
 // Get all agents
-router.get(
-  "/",
-  requireAuth,
-  requireRoles(ROLES.ADMIN, ROLES.SUPERADMIN),
-  getAllAgents
-);
-
+// router.get(
+//   "/",
+//   requireAuth,
+//   requireRoles(ROLES.ADMIN, ROLES.SUPERADMIN),
+//   getAllAgents
+// );
+router.get("/",getAllAgents)
 // Get agent statistics
 // router.get(
 //   "/stats",

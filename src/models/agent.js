@@ -25,7 +25,7 @@ const agentSchema = new Schema(
     lastName: String,
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     // Keep optional here since credentials will live in User model
-    password: { type: String, required: false, select: false },
+    password: { type: String, required: true, select: false },
     phone: String,
     role: { type: String, enum: Object.values(ROLES), default: ROLES.AGENT },
     isActive: { type: Boolean, default: true },

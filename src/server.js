@@ -7,15 +7,10 @@ import itineraryRoutes from './routes/itineraryRoutes.js';
 import agentRoutes from './routes/agentRoutes.js'; // updated
 import enquiryRoutes from './routes/enquiryRoutes.js';
 import { errorHandler } from './utils/errorHandler.js';
-
+import corsOptions from './config/corsoption.js';
 const app = express();
 
-app.use(
-  cors({
-    origin: "http://localhost:5173", // Your frontend URL
-    credentials: true, // Allow cookies/authorization headers
-  })
-);
+app.use(cors(corsOptions))
 
 app.use(cookieParser());
 app.use(express.json());
