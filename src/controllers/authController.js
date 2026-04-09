@@ -47,25 +47,38 @@ import bcrypt from "bcrypt";
 
 export const register = async (req, res) => {
   try {
-    const { first_Name , last_Name, email , password ,  phone_no } = req.body;
-    console.log(req.body)
-    if (!first_Name || !last_Name || !email || !password  || !phone_no) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-  //     if (role === ROLES.SUPERADMIN) {
-  //      throw new AppError("Cannot assign SUPERADMIN role manually", 403);
-  //  }
-    const duplicate = await Agent.findOne({ email });
-    if (duplicate) {
-      return res.status(400).json({ error: "Email is already exists" });
-    }
-    const hashPass = await bcrypt.hash(password, 10);
-    const adminObj = {
+    const {
       first_Name,
       last_Name,
+      firstName,
+      lastName,
       email,
+      password,
+      phone_no,
+      phone,
+    } = req.body;
+
+    const firstNameValue = (first_Name || firstName || "").trim();
+    const lastNameValue = (last_Name || lastName || "").trim();
+    const phoneValue = (phone_no || phone || "").trim();
+    const emailValue = (email || "").toLowerCase().trim();
+
+    if (!firstNameValue || !lastNameValue || !emailValue || !password || !phoneValue) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const duplicate = await Agent.findOne({ email: emailValue });
+    if (duplicate) {
+      return res.status(400).json({ message: "Email already exists" });
+    }
+
+    const hashPass = await bcrypt.hash(password, 10);
+    const adminObj = {
+      firstName: firstNameValue,
+      lastName: lastNameValue,
+      email: emailValue,
       password: hashPass,
-      phone_no
+      phone: phoneValue,
     };
     const admin = new Agent(adminObj);
     await admin.save();
@@ -73,13 +86,14 @@ export const register = async (req, res) => {
       return res.status(200).json({ message: "Admin Successfully Created" });
     }
   } catch (error) {
-    console.log(error)
+    console.error(error);
     res.status(500).json({ message: "Server Error" });
   }
 };
 /**
  * ======================
  * LOGIN CONTROLLER
+ * wha
  * ======================
  */
 // export const login = async (req, res, next) => {
@@ -136,7 +150,7 @@ export const login = async (req, res) => {
     }
 
     const accessToken = jwt.sign(
-      { id: admin._id },
+      { id: admin._id, email: admin.email, role: admin.role },
       process.env.ACCESS_TOKEN_SECRET,
       { expiresIn: "15m" }
     );
@@ -146,6 +160,68 @@ export const login = async (req, res) => {
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ message: "Server Error" });
+  }
+};
+
+export const getProfile = async (req, res) => {
+  try {
+    const agent = await Agent.findById(req.user.id).select("-password");
+    if (!agent) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+    return res.status(200).json({ user: agent });
+  } catch (error) {
+    console.error("getProfile error:", error);
+    return res.status(500).json({ message: "Server Error" });
+  }
+};
+
+export const updateProfile = async (req, res) => {
+  try {
+    const {
+      first_name,
+      last_name,
+      firstName,
+      lastName,
+      email,
+      phone,
+      company,
+      photo,
+      secondaryEmails,
+      companyAddress,
+      branchAddresses,
+    } = req.body;
+
+    const updates = {};
+    if (first_name) updates.firstName = first_name;
+    if (last_name) updates.lastName = last_name;
+    if (firstName) updates.firstName = firstName;
+    if (lastName) updates.lastName = lastName;
+    if (phone) updates.phone = phone;
+    if (company) updates.company = company;
+    if (photo) updates.photo = photo;
+    if (email) updates.email = email.toLowerCase().trim();
+    if (Array.isArray(secondaryEmails) && secondaryEmails.length > 0) {
+      updates.secondaryEmail = secondaryEmails[0];
+    }
+    if (companyAddress) updates.companyAddress = companyAddress;
+    if (Array.isArray(branchAddresses) && branchAddresses.length > 0) {
+      updates.branchAddress = branchAddresses[0];
+    }
+
+    const agent = await Agent.findByIdAndUpdate(req.user.id, updates, {
+      new: true,
+      runValidators: true,
+    }).select("-password");
+
+    if (!agent) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+
+    return res.status(200).json({ message: "Profile updated", user: agent });
+  } catch (error) {
+    console.error("updateProfile error:", error);
+    return res.status(500).json({ message: "Server Error" });
   }
 };
 
@@ -185,6 +261,8 @@ export const login = async (req, res) => {
 /**
  * ======================
  * SEED SUPER ADMIN
+ * superadmin seeding is a one-time operation to create a default super admin account.
+ * This endpoint should be protected and removed or disabled after use to prevent unauthorized access.
  * ======================
  * - One-time setup
  */

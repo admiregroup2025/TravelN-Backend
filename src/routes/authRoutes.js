@@ -1,6 +1,6 @@
 import { Router } from "express";
 // import { login, register, refreshTokenHandler, seedSuperAdmin,} from "../controllers/authController.js";
-import {login , register} from "../controllers/authController.js"
+import { login, register, getProfile, updateProfile } from "../controllers/authController.js";
 import { validateRegister } from "../middlewares/validators/authValidator.js";
 import { validateRequest } from "../middlewares/validators/validationErrorHandler.js";
 import { check } from "express-validator";
@@ -37,6 +37,10 @@ router.post("/register",register)
 router.get("/me", requireAuth, async (req, res) => {
   res.status(200).json({ success: true, user: req.user });
 });
+
+// Profile endpoints
+router.get("/profile", requireAuth, getProfile);
+router.put("/profile", requireAuth, updateProfile);
 
 // Logout
 router.post("/logout", requireAuth, (req, res) => {
