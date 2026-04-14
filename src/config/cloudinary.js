@@ -1,8 +1,11 @@
-const cloudinary = require("cloudinary").v2;
+import { v2 as cloudinary } from "cloudinary";
+import { ENV } from "./ENV.js";
 
 cloudinary.config({
-  cloud_name: "YOUR_CLOUD_NAME",
-  api_key: "YOUR_API_KEY",
-  api_secret: "YOUR_API_SECRET",
-  secure: true, // optional, enables https
+  cloud_name: ENV.CLOUDINARY_NAME,
+  api_key: ENV.CLOUDINARY_API,
+  api_secret: ENV.CLOUDINARY_SECRET,
+  secure: true,
 });
+
+export default cloudinary;

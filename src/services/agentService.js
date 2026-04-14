@@ -1,4 +1,3 @@
-
 import Agent from "../models/agent.js";
 import User from "../models/User.js";
 import { ROLES } from "../utils/constant.js";
@@ -67,6 +66,7 @@ export const createAgent = async (data, loggedInUser) => {
     companyAddress: data.companyAddress,
     branchAddress: data.branchAddress,
     photo: data.photo,
+    password: data.password,
     isActive: data.isActive !== undefined ? data.isActive : true,
   });
   await agent.save();

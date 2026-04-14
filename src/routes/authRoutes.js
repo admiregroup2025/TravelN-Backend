@@ -1,6 +1,6 @@
 import { Router } from "express";
 // import { login, register, refreshTokenHandler, seedSuperAdmin,} from "../controllers/authController.js";
-import { login, register, getProfile, updateProfile } from "../controllers/authController.js";
+import { login, register, getProfile, updateProfile, verifyOTP} from "../controllers/authController.js";
 import { validateRegister } from "../middlewares/validators/authValidator.js";
 import { validateRequest } from "../middlewares/validators/validationErrorHandler.js";
 import { check } from "express-validator";
@@ -10,6 +10,8 @@ import { ROLES } from "../utils/constant.js";
 const router = Router();
 router.post("/login", login)
 router.post("/register",register)
+router.post("/verify-otp",verifyOTP)
+
 
 // router.post(
 //   "/login",

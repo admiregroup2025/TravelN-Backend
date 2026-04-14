@@ -1,8 +1,5 @@
 import { Router } from "express";
-import {
-  createAdminLoginCredential,
-  loginAdminCredential,
-} from "../controllers/adminLoginCredentialController.js";
+import { createAdminLoginCredential, loginAdminCredential,} from "../controllers/adminLoginCredentialController.js";
 
 const router = Router();
 

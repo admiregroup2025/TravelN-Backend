@@ -4,8 +4,10 @@ import { ROLES } from "../utils/constant.js";
 // ✅ Authenticate and attach user to req
 export function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization || "";
-  const token = authHeader.toLowerCase().startsWith("bearer ")
-    ? authHeader.slice(7)
+  const token = authHeader.startsWith("Bearer ") 
+  ? authHeader.slice(7) 
+  : authHeader.startsWith("bearer ") 
+    ? authHeader.slice(7) 
     : null;
 
   if (!token) {
@@ -13,7 +15,7 @@ export function requireAuth(req, res, next) {
   }
 
   try {
-    const payload = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
 
     req.user = {
       id: payload.id,

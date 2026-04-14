@@ -36,6 +36,11 @@ const agentSchema = new Schema(
     branchAddress: { type: addressSchema },
     photo: String,
     profileCompletedAt: Date,
+    
+    isVerified: {
+  type: Boolean,
+  default: false
+}
   },
   { timestamps: true }
 );
@@ -51,6 +56,8 @@ agentSchema.virtual("isProfileComplete").get(function () {
     this.companyAddress?.postalCode
   );
 });
+
+
 
 // Pre-save hook to hash password
 agentSchema.pre("save", async function (next) {
@@ -72,6 +79,7 @@ agentSchema.methods.comparePassword = async function (candidate) {
 
 // Clean JSON output
 agentSchema.set("toJSON", {
+  virtuals: true,
   transform: (doc, ret) => {
     delete ret.password;
     return ret;

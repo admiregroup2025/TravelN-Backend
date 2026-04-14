@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import AdminLoginCredential from "../models/adminLoginCredential.js";
+import jwt from "jsonwebtoken";
 
 export const createAdminLoginCredential = async (req, res) => {
   try {
@@ -20,10 +21,12 @@ export const createAdminLoginCredential = async (req, res) => {
         data: { email: existing.email, role: existing.role },
       });
     }
+    const hashedPassword = await bcrypt.hash(password, 10);
+
 
     const credential = new AdminLoginCredential({
       email: normalizedEmail,
-      password,
+      password: hashedPassword,
       role: role.toUpperCase(),
     });
 
@@ -63,6 +66,23 @@ export const loginAdminCredential = async (req, res) => {
     if (!isMatch || !roleMatches) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
+
+
+        const token = jwt.sign(
+      { id: credential._id, role: credential.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    return res.status(200).json({
+      message: "Login successful",
+      token, //  IMPORTANT
+      data: {
+        email: credential.email,
+        role: credential.role,
+      },
+    });
+
 
     return res.status(200).json({
       message: "Login successful",

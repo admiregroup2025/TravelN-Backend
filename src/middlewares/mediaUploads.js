@@ -1,21 +1,15 @@
-import { v2 as cloudinary } from 'cloudinary';
 import multer from 'multer';
-import { CloudinaryStorage } from 'multer-storage-cloudinary';
-import { ENV } from '../config/ENV.js';
-
-cloudinary.config({
-  cloud_name: ENV.CLOUDINARY_NAME,
-  api_key: ENV.CLOUDINARY_API,
-  api_secret: ENV.CLOUDINARY_SECRET,
-});
-
+import cloudinary from '../config/cloudinary.js';
+import pkg from 'multer-storage-cloudinary';
+const { CloudinaryStorage } = pkg;
 
 const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: 'media-uploads',
-    resource_type: 'auto',
-  },
+  cloudinary,
+  params: (req, file) => ({
+    folder: 'Travelnworld/banner_ads/home_top_banner',
+    resource_type: 'image',
+    public_id: `banner_${Date.now()}`,
+  }),
 });
 
 const uploadMedia = multer({ storage });

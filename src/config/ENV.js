@@ -4,8 +4,10 @@ import 'dotenv/config';
 const requiredEnvVars = [
   'MONGO_URI',
   'JWT_SECRET',
+  'ACCESS_TOKEN_SECRET',
+  'REFRESH_TOKEN_SECRET',
   'CLOUDINARY_API',
-  'CLOUDINARY_SECRET', 
+  'CLOUDINARY_SECRET',
   'CLOUDINARY_NAME'
 ];
 
@@ -24,4 +26,6 @@ export const ENV = {
   CLOUDINARY_SECRET: process.env.CLOUDINARY_SECRET,
   CLOUDINARY_NAME: process.env.CLOUDINARY_NAME,
   JWT_SECRET: process.env.JWT_SECRET,
+  ACCESS_TOKEN_SECRET: process.env.ACCESS_TOKEN_SECRET,
+  REFRESH_TOKEN_SECRET: process.env.REFRESH_TOKEN_SECRET,
 };

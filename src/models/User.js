@@ -37,6 +37,10 @@ const userSchema = new Schema(
     isActive: { type: Boolean, default: true },
     firstName: { type: String },
     lastName: { type: String },
+    isProfileComplete: {
+    type: Boolean,
+    default: false,
+  },
   },
   { timestamps: true }
 );

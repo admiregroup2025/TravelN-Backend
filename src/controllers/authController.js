@@ -5,6 +5,9 @@ import User from "../models/User.js";
 import { AppError } from "../utils/errorHandler.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
+import OTP from "../models/otpModel.js";
+import sendOTPEmail from "../utils/sendEmail.js";
+
 
 /**
  * ======================
@@ -125,6 +128,7 @@ export const register = async (req, res) => {
 
 
 export const login = async (req, res) => {
+  console.log("Response sent to frontend")
   try {
     const { email, password } = req.body;
 
@@ -132,33 +136,73 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    // Explicitly include password in query result
     const admin = await Agent.findOne({ email }).select("+password");
-
     if (!admin) {
       return res.status(400).json({ message: "Invalid details entered" });
     }
 
-    // Log for debugging (can remove later)
-    // console.log("Request password:", password);
-    // console.log("Agent password (hashed):", admin.password);
-
     const isMatch = await bcrypt.compare(password, admin.password);
-
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid details entered" });
     }
 
+    // 1. Generate a 6-digit OTP
+    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // 2. Save OTP to MongoDB (will auto-delete if you set 'expires' in model)
+    await OTP.create({ email: admin.email, otp: generatedOtp });
+
+    // 3. LOG THE OTP (In production, use Nodemailer to send this via email)
+    
+    sendOTPEmail(admin.email, generatedOtp); // Send OTP email
+
+    // 4. Tell Frontend to switch to OTP UI
+    return res.json({ otpSent: true, message: "OTP sent to your email" });
+
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+// --- LOGIN STEP 2: VERIFY OTP ---
+export const verifyOTP = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    // 1. Find the OTP in MongoDB
+    const otpRecord = await OTP.findOne({ email, otp });
+
+    if (!otpRecord) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
+    // 2. Get User for Token
+    const admin = await Agent.findOne({ email });
+
+    if (!admin) return res.status(404).json({ message: "User no longer exists" });
+    // 3. Generate the actual Access Token
     const accessToken = jwt.sign(
       { id: admin._id, email: admin.email, role: admin.role },
       process.env.ACCESS_TOKEN_SECRET,
       { expiresIn: "15m" }
     );
 
-    return res.json({ accessToken });
+    // 4. Clean up: Delete OTP after use
+    await OTP.deleteOne({ _id: otpRecord._id });
+
+    return res.json({
+      accessToken,
+      user: {
+        _id: admin._id,
+        email: admin.email,
+        role: admin.role,
+        isProfileComplete: admin.isProfileComplete ?? false, // key field
+      },
+    });
 
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("Verify OTP error:", error);
     res.status(500).json({ message: "Server Error" });
   }
 };
