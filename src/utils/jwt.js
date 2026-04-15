@@ -2,12 +2,13 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { AppError } from "./errorHandler.js";
 
-export const generateAccessToken = (payload) => {
+export const generateAccessToken = (payload,rememberMe = false) => {
   const accessJti = crypto.randomBytes(16).toString("hex");
   const secret = process.env.ACCESS_TOKEN_SECRET;
+  //const { rememberMe } = req.body;
   if (!secret) throw new AppError("ACCESS_TOKEN_SECRET not set", 500);
 
-  return jwt.sign({ ...payload, jti: accessJti }, secret, { expiresIn: "15m" });
+  return jwt.sign({ ...payload, jti: accessJti }, secret, { expiresIn: rememberMe ? "7d" : "1d" });
 };
 
 export const generateRefreshToken = (payload) => {

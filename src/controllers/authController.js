@@ -7,6 +7,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import OTP from "../models/otpModel.js";
 import sendOTPEmail from "../utils/sendEmail.js";
+import { generateAccessToken } from "../utils/jwt.js";
 
 
 /**
@@ -130,7 +131,7 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
   console.log("Response sent to frontend")
   try {
-    const { email, password } = req.body;
+    const { email, password,rememberMe } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ message: "All fields are required" });
@@ -168,7 +169,7 @@ export const login = async (req, res) => {
 // --- LOGIN STEP 2: VERIFY OTP ---
 export const verifyOTP = async (req, res) => {
   try {
-    const { email, otp } = req.body;
+    const { email, otp ,rememberMe } = req.body;
 
     // 1. Find the OTP in MongoDB
     const otpRecord = await OTP.findOne({ email, otp });
@@ -182,17 +183,21 @@ export const verifyOTP = async (req, res) => {
 
     if (!admin) return res.status(404).json({ message: "User no longer exists" });
     // 3. Generate the actual Access Token
-    const accessToken = jwt.sign(
-      { id: admin._id, email: admin.email, role: admin.role },
-      process.env.ACCESS_TOKEN_SECRET,
-      { expiresIn: "15m" }
-    );
+        const accessToken = generateAccessToken(
+        {
+          id: admin._id,
+          email: admin.email,
+          role: admin.role,
+        },
+        rememberMe 
+      );
 
     // 4. Clean up: Delete OTP after use
     await OTP.deleteOne({ _id: otpRecord._id });
 
     return res.json({
       accessToken,
+      success: true,
       user: {
         _id: admin._id,
         email: admin.email,
@@ -223,8 +228,6 @@ export const getProfile = async (req, res) => {
 export const updateProfile = async (req, res) => {
   try {
     const {
-      first_name,
-      last_name,
       firstName,
       lastName,
       email,
@@ -237,8 +240,6 @@ export const updateProfile = async (req, res) => {
     } = req.body;
 
     const updates = {};
-    if (first_name) updates.firstName = first_name;
-    if (last_name) updates.lastName = last_name;
     if (firstName) updates.firstName = firstName;
     if (lastName) updates.lastName = lastName;
     if (phone) updates.phone = phone;

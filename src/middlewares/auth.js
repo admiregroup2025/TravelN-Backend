@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import { ROLES } from "../utils/constant.js";
 
-// ✅ Authenticate and attach user to req
+//  Authenticate and attach user to req
 export function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization || "";
   const token = authHeader.startsWith("Bearer ") 
@@ -15,32 +15,34 @@ export function requireAuth(req, res, next) {
   }
 
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
-
+    const payload = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+ 
     req.user = {
       id: payload.id,
       email: payload.email,
-      role: payload.role,
+      role: payload.role, 
     };
 
     next();
   } catch (error) {
+    
     const message =
       error.name === "TokenExpiredError"
         ? "Unauthorized: Token expired"
         : "Unauthorized: Invalid token";
+
     return res.status(401).json({ message });
   }
 }
 
-// ✅ Role hierarchy control (Super Admin > Admin > Agent)
+//  Role hierarchy control (Super Admin > Admin > Agent)
 const roleHierarchy = {
   [ROLES.SUPERADMIN]: 3,
   [ROLES.ADMIN]: 2,
   [ROLES.AGENT]: 1,
 };
 
-// ✅ Allow only specific roles OR higher ones in hierarchy
+//  Allow only specific roles OR higher ones in hierarchy
 export function requireRoles(...allowedRoles) {
   return (req, res, next) => {
     if (!req.user) {
@@ -57,7 +59,7 @@ export function requireRoles(...allowedRoles) {
       });
     }
 
-    // ✅ If user’s role rank >= any allowed role’s rank, grant access
+    //  If user’s role rank >= any allowed role’s rank, grant access
     const userRank = roleHierarchy[userRole];
     const allowedRanks = allowedRoles.map((r) => roleHierarchy[r]);
 
