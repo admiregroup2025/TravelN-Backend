@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import AdminLoginCredential from "../models/adminLoginCredential.js";
-import jwt from "jsonwebtoken";
+import { generateAccessToken } from "../utils/jwt.js";
 
 export const createAdminLoginCredential = async (req, res) => {
   try {
@@ -68,10 +68,9 @@ export const loginAdminCredential = async (req, res) => {
     }
 
 
-        const token = jwt.sign(
-      { id: credential._id, role: credential.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+    const token = generateAccessToken(
+      { id: credential._id, email: credential.email, role: credential.role },
+      true
     );
 
     return res.status(200).json({
@@ -81,12 +80,6 @@ export const loginAdminCredential = async (req, res) => {
         email: credential.email,
         role: credential.role,
       },
-    });
-
-
-    return res.status(200).json({
-      message: "Login successful",
-      data: { email: credential.email, role: credential.role },
     });
   } catch (error) {
     console.error("loginAdminCredential error:", error);

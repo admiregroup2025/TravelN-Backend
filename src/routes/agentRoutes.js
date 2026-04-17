@@ -65,14 +65,16 @@ const validateMyPasswordChange = [
 
 // ==================== AGENT ROUTES ====================
 
-// Get all agents
-// router.get(
-//   "/",
-//   requireAuth,
-//   requireRoles(ROLES.ADMIN, ROLES.SUPERADMIN),
-//   getAllAgents
-// );
-router.get("/",getAllAgents)
+// Get all public agents
+router.get("/public", getAllAgents);
+
+// Get all agents (admin only)
+router.get(
+  "/",
+  requireAuth,
+  requireRoles(ROLES.ADMIN, ROLES.SUPERADMIN),
+  getAllAgents
+);
 // Get agent statistics
 // router.get(
 //   "/stats",
@@ -138,7 +140,7 @@ router.patch(
 router.post(
   "/admin",
   requireAuth,
-  requireRoles(ROLES.SUPERADMIN),
+  requireRoles(ROLES.ADMIN,ROLES.SUPERADMIN),
   [
     check("firstName", "First name is required").notEmpty().trim(),
     check("lastName", "Last name must be a string").optional().isString().trim(),

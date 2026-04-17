@@ -131,13 +131,14 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
   console.log("Response sent to frontend")
   try {
-    const { email, password,rememberMe } = req.body;
+    const { email, password, rememberMe, loginMode } = req.body;
+    const normalizedEmail = email?.toLowerCase().trim();
 
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    const admin = await Agent.findOne({ email }).select("+password");
+    const admin = await Agent.findOne({ email: normalizedEmail }).select("+password");
     if (!admin) {
       return res.status(400).json({ message: "Invalid details entered" });
     }
@@ -147,6 +148,23 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: "Invalid details entered" });
     }
 
+    if (loginMode === "superadmin") {
+      if (admin.role !== ROLES.SUPERADMIN) {
+        return res.status(403).json({ message: "Not a SuperAdmin account" });
+      }
+
+    
+    const accessToken = generateAccessToken({
+          id: admin._id,email: admin.email,role: admin.role,},
+        rememberMe
+      );
+
+      return res.json({
+        success: true,
+        accessToken,
+        user: {_id: admin._id, email: admin.email,role: admin.role, isProfileComplete: true, },
+      });
+    }
     // 1. Generate a 6-digit OTP
     const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -154,7 +172,6 @@ export const login = async (req, res) => {
     await OTP.create({ email: admin.email, otp: generatedOtp });
 
     // 3. LOG THE OTP (In production, use Nodemailer to send this via email)
-    
     sendOTPEmail(admin.email, generatedOtp); // Send OTP email
 
     // 4. Tell Frontend to switch to OTP UI
@@ -169,17 +186,18 @@ export const login = async (req, res) => {
 // --- LOGIN STEP 2: VERIFY OTP ---
 export const verifyOTP = async (req, res) => {
   try {
-    const { email, otp ,rememberMe } = req.body;
+    const { email, otp, rememberMe } = req.body;
+    const normalizedEmail = email?.toLowerCase().trim();
 
     // 1. Find the OTP in MongoDB
-    const otpRecord = await OTP.findOne({ email, otp });
+    const otpRecord = await OTP.findOne({ email: normalizedEmail, otp });
 
     if (!otpRecord) {
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
     // 2. Get User for Token
-    const admin = await Agent.findOne({ email });
+    const admin = await Agent.findOne({ email: normalizedEmail });
 
     if (!admin) return res.status(404).json({ message: "User no longer exists" });
     // 3. Generate the actual Access Token

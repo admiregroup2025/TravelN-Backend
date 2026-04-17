@@ -31,12 +31,11 @@ import Agent from "../models/agent.js";
 
 export const getAllAgents = async (req, res) => {
   try {
-    const agent = await Agent.find({});
-    if (!agent.length) {
-      return res.status(400).json({ message: "No Student found" });
-    }
-    res.json(agent);
+    const agents = await Agent.find({}).select("-password -__v");
+
+    res.status(200).json(agents); // always return array
   } catch (error) {
+    console.error("getAllAgents error:", error);
     res.status(500).json({ message: "Server Error" });
   }
 };
@@ -68,23 +67,11 @@ export const getAgentById = async (req, res, next) => {
  */
 export const createAgent = async (req, res, next) => {
   try {
-    const { role } = req.body;
-
-    // Restrict role creation based on logged-in user
-    if (role === ROLES.SUPERADMIN) {
-      throw new AppError("Cannot create SUPER_ADMIN manually", 403);
-    }
-
-    if (req.user.role === ROLES.ADMIN && role === ROLES.ADMIN) {
-      throw new AppError("ADMIN cannot create another ADMIN", 403);
-    }
-
     const result = await agentService.createAgent(req.body, req.user);
-
     res.status(201).json({
       success: true,
       message: result.message,
-      data: result.agent,
+      agent: result.agent,
     });
   } catch (error) {
     next(error);
