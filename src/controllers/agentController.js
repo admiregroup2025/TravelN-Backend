@@ -40,6 +40,18 @@ export const getAllAgents = async (req, res) => {
   }
 };
 
+
+export const getVerifiedAgents = async (req, res) => {
+  try {
+    const agents = await Agent.find({ isVerified: true })
+      .select("-password -__v");
+
+    res.status(200).json(agents);
+  } catch (error) {
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
 /**
  * ======================
  * GET AGENT / ADMIN BY ID

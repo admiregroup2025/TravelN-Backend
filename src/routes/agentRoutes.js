@@ -11,6 +11,7 @@ import {
   getMyProfile,
   updateMyProfile,
   changeMyPassword,
+  getVerifiedAgents,
 } from "../controllers/agentController.js";
 import { requireAuth, requireRoles } from "../middlewares/auth.js";
 import { ROLES } from "../utils/constant.js";
@@ -67,6 +68,9 @@ const validateMyPasswordChange = [
 
 // Get all public agents
 router.get("/public", getAllAgents);
+
+// Get verified agents (public)
+router.get("/verified", getVerifiedAgents);
 
 // Get all agents (admin only)
 router.get(

@@ -36,7 +36,6 @@ const agentSchema = new Schema(
     branchAddress: { type: addressSchema },
     photo: String,
     profileCompletedAt: Date,
-    
     isVerified: {
   type: Boolean,
   default: false
