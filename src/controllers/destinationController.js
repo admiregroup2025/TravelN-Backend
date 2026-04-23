@@ -4,6 +4,9 @@ import slugify from "slugify";
 // Create a new destination
 export async function createDestination(req, res) {
   try {
+    console.log("Create Destination Request Body:", req.body);
+    console.log("Create Destination File:", req.file);
+
     let {
       name,
       type,
@@ -24,13 +27,25 @@ export async function createDestination(req, res) {
       reviews,
     } = req.body;
 
-    // Parse JSON strings from FormData
-    if (typeof categories === 'string') categories = JSON.parse(categories);
-    if (typeof gallery === 'string') gallery = JSON.parse(gallery);
-    if (typeof cities === 'string') cities = JSON.parse(cities);
-    if (typeof itinerary === 'string') itinerary = JSON.parse(itinerary);
-    if (typeof inclusions === 'string') inclusions = JSON.parse(inclusions);
-    if (typeof exclusions === 'string') exclusions = JSON.parse(exclusions);
+    // Parse JSON strings from FormData with safety
+    const safeParse = (data) => {
+      if (typeof data === 'string' && data.trim() !== '') {
+        try {
+          return JSON.parse(data);
+        } catch (e) {
+          console.error("JSON Parse Error for data:", data, e);
+          return null;
+        }
+      }
+      return data;
+    };
+
+    categories = safeParse(categories);
+    gallery = safeParse(gallery);
+    cities = safeParse(cities);
+    itinerary = safeParse(itinerary);
+    inclusions = safeParse(inclusions);
+    exclusions = safeParse(exclusions);
 
     // Handle file upload
     if (req.file) {
@@ -44,7 +59,7 @@ export async function createDestination(req, res) {
       });
     }
 
-    if (!["domestic", "international"].includes(type)) {
+    if (!["domestic", "international"].includes(type.toLowerCase())) {
       return res.status(400).json({
         message: "type must be either 'domestic' or 'international'",
       });
@@ -65,22 +80,22 @@ export async function createDestination(req, res) {
     const destination = new Destination({
       name,
       slug,
-      type,
+      type: type.toLowerCase(),
       description,
       shortDescription,
       coverImageUrl,
-      gallery: gallery || [],
+      gallery: Array.isArray(gallery) ? gallery : [],
       categories: categories || {},
-      priceFrom: priceFrom || 0,
-      discountedPrice: discountedPrice || 0,
-      durationDays: durationDays || 0,
-      durationNights: durationNights || 0,
-      cities: cities || [],
-      itinerary: itinerary || [],
-      inclusions: inclusions || [],
-      exclusions: exclusions || [],
-      rating: rating || 0,
-      reviews: reviews || 0,
+      priceFrom: Number(priceFrom) || 0,
+      discountedPrice: Number(discountedPrice) || 0,
+      durationDays: Number(durationDays) || 0,
+      durationNights: Number(durationNights) || 0,
+      cities: Array.isArray(cities) ? cities : [],
+      itinerary: Array.isArray(itinerary) ? itinerary : [],
+      inclusions: Array.isArray(inclusions) ? inclusions : [],
+      exclusions: Array.isArray(exclusions) ? exclusions : [],
+      rating: Number(rating) || 0,
+      reviews: Number(reviews) || 0,
       createdBy: req.user?.id,
       ownerRole: req.user?.role,
     });
