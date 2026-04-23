@@ -7,6 +7,7 @@ import itineraryRoutes from './routes/itineraryRoutes.js';
 import agentRoutes from './routes/agentRoutes.js'; // updated
 import enquiryRoutes from './routes/enquiryRoutes.js';
 import adminLoginCredentialRoutes from './routes/adminLoginCredentialRoutes.js';
+import destinationRoutes from './routes/destinationRoutes.js';
 import { errorHandler } from './utils/errorHandler.js';
 import corsOptions from './config/corsoption.js';
 import bannerRoutes from "./routes/bannerRoutes.js";
@@ -25,6 +26,7 @@ app.get("/", (req, res) => {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/itineraries', itineraryRoutes);
+app.use('/api/destinations', destinationRoutes);
 app.use('/api/agents', agentRoutes); 
 app.use('/api/enquiries', enquiryRoutes);
 app.use('/api/adminslogincredentials', adminLoginCredentialRoutes);
