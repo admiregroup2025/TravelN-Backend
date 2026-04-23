@@ -1,5 +1,6 @@
 import { Enquiry } from "../models/enquiry.js";
 import { AppError } from "../utils/errorHandler.js";
+import { sendEnquiryEmail } from "../utils/sendEmail.js";
 
 /**
  * @desc Create a new enquiry (Public/User)
@@ -9,6 +10,15 @@ import { AppError } from "../utils/errorHandler.js";
 export const createEnquiry = async (req, res, next) => {
   try {
     const enquiry = await Enquiry.create(req.body);
+
+    // ✅ Send Email to Superadmin
+    try {
+      await sendEnquiryEmail(enquiry);
+    } catch (emailError) {
+      console.error("Failed to send enquiry email:", emailError);
+    }
+
+
     return res.status(201).json({
       success: true,
       message: "Enquiry submitted successfully!",
@@ -19,6 +29,7 @@ export const createEnquiry = async (req, res, next) => {
     next(new AppError("Failed to submit enquiry", 500));
   }
 };
+
 
 
 export const getAllEnquiries = async (req, res, next) => {
