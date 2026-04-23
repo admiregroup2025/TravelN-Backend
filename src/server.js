@@ -14,6 +14,8 @@ import bannerRoutes from "./routes/bannerRoutes.js";
 import blogRoutes from "./routes/BlogRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
 import policyRoutes from "./routes/policyRoutes.js";
+import testimonialRoutes from "./routes/testimonialRoutes.js";
+import contactRoutes from "./routes/contactRoutes.js";
 const app = express();
 
 app.use(cors(corsOptions));
@@ -37,6 +39,8 @@ app.use("/api/banners", bannerRoutes);
 app.use("/api/blogs", blogRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/policies", policyRoutes);
+app.use("/api/testimonials", testimonialRoutes);
+app.use("/api/contacts", contactRoutes);
 
 
 // Global error handler

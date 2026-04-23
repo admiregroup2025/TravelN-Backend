@@ -45,3 +45,25 @@ export const getAllEnquiries = async (req, res, next) => {
     next(new AppError("Failed to fetch enquiries", 500));
   }
 };
+
+/**
+ * @desc Delete an enquiry (Admin)
+ * @route DELETE /api/enquiries/:id
+ * @access Private (Admin)
+ */
+export const deleteEnquiry = async (req, res, next) => {
+  try {
+    const enquiry = await Enquiry.findByIdAndDelete(req.params.id);
+    if (!enquiry) {
+      return next(new AppError("Enquiry not found", 404));
+    }
+    return res.status(200).json({
+      success: true,
+      message: "Enquiry deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting enquiry:", error);
+    next(new AppError("Failed to delete enquiry", 500));
+  }
+};
+
