@@ -15,6 +15,7 @@ export function requireAuth(req, res, next) {
   }
 
   try {
+    console.log("Received token:", token);
     const payload = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
  
     req.user = {
@@ -26,10 +27,10 @@ export function requireAuth(req, res, next) {
     next();
   } catch (error) {
     
-    const message =
+    console.error("JWT Verify Error:", error); const message =
       error.name === "TokenExpiredError"
         ? "Unauthorized: Token expired"
-        : "Unauthorized: Invalid token";
+        : `Unauthorized: ${error.message} (token: ${token.substring(0, 15)}...)`;
 
     return res.status(401).json({ message });
   }
