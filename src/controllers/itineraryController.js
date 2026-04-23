@@ -122,16 +122,16 @@ function mapPayloadToModel(payload) {
     type,
     destination: (destination || "").trim(),
     // city / country set depending on type for backward-compatible filtering
-    city:    type === "domestic"      ? (destination || "").trim() : undefined,
+    city: type === "domestic" ? (destination || "").trim() : undefined,
     country: type === "international" ? (destination || "").trim() : undefined,
 
     duration: duration || "",
     durationDays: parseDurationDays(duration),
 
-    themes:         Array.isArray(themes)         ? themes         : [],
+    themes: Array.isArray(themes) ? themes : [],
     classification: Array.isArray(classification) ? classification : [],
-    packageType:    packageType  || "Flexible",
-    visibility:     visibility   || "Public",
+    packageType: packageType || "Flexible",
+    visibility: visibility || "Public",
 
     shortDescription: (destinationDetail || "").substring(0, 150).trim(),
     destinationDetail: (destinationDetail || "").trim(),
@@ -144,8 +144,8 @@ function mapPayloadToModel(payload) {
 
     // Map form day objects to dayPlan sub-documents
     dayPlans: (Array.isArray(days) ? days : []).map(({ day, title: dayTitle, locationDetail }) => ({
-      day:            Number(day) || 1,
-      title:          (dayTitle || "").trim(),
+      day: Number(day) || 1,
+      title: (dayTitle || "").trim(),
       locationDetail: (locationDetail || "").trim(),
     })),
 
@@ -153,12 +153,12 @@ function mapPayloadToModel(payload) {
     exclusions: toArray(exclusions),
 
     asPerCategory: Boolean(asPerCategory),
-    asBestQuote:   Boolean(asBestQuote),
-    priceFrom:      asBestQuote ? 0 : Number(standardPrice)   || 0,
+    asBestQuote: Boolean(asBestQuote),
+    priceFrom: asBestQuote ? 0 : Number(standardPrice) || 0,
     discountedPrice: asBestQuote ? 0 : Number(discountedPrice) || 0,
 
-    termsConditions:    (termsConditions    || "").trim(),
-    paymentMode:        (paymentMode        || "").trim(),
+    termsConditions: (termsConditions || "").trim(),
+    paymentMode: (paymentMode || "").trim(),
     cancellationPolicy: (cancellationPolicy || "").trim(),
 
     isPublished: true,
@@ -282,7 +282,7 @@ export async function listItineraries(req, res) {
       pagination: {
         total,
         limit: parseInt(limit, 10),
-        skip:  parseInt(skip,  10),
+        skip: parseInt(skip, 10),
       },
     });
   } catch (error) {
@@ -345,7 +345,7 @@ export async function updateItinerary(req, res) {
     // Regenerate slug if the title or destination changed
     if (req.body.title || req.body.destination) {
       const baseTitle = req.body.title || slug;
-      const baseDest  = req.body.destination || "";
+      const baseDest = req.body.destination || "";
       updateData.slug = await generateUniqueSlug(`${baseTitle}-${baseDest}`);
     }
 
